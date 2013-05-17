@@ -38,10 +38,11 @@
 		});
 
 		function unveil() {
+			var wt = $w.scrollTop(),
+				wb = wt + $w.height();
+
 			inview = images.filter(function () {
 				var $e = $(this),
-					wt = $w.scrollTop(),
-					wb = wt + $w.height(),
 					et = $e.offset().top,
 					eb = et + $e.height();
 
