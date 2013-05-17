@@ -1,4 +1,4 @@
-/**
+﻿/**
  * jQuery Unveil
  * A very lightweight jQuery plugin to lazy load images
  * http://luis-almeida.github.com/unveil
@@ -6,51 +6,62 @@
  * Licensed under the MIT license.
  * Copyright 2013 Luís Almeida
  * https://github.com/luis-almeida
+ *
+ * Modified to have a callback on unveiling rather than simply lazy load an image.
+ * Usage: $('.lazy').unveil({ unveiled: function () { ... } });
  */
 
-;(function($) {
+;(function ($) {
+	'use strict';
 
-  $.fn.unveil = function(threshold) {
+	$.fn.unveil = function (options) {
+		var settings = $.extend({}, $.fn.unveil.defaults, typeof options === 'object' ? options : { threshold: options, unveiled: null }),
+			$w = $(window),
+			th = settings.threshold || 0,
+			retina = window.devicePixelRatio && window.devicePixelRatio > 1,
+			attrib = retina ? "data-src-retina" : "data-src",
+			images = this,
+			loaded,
+			inview,
+			source;
 
-    var $w = $(window),
-        th = threshold || 0,
-        retina = window.devicePixelRatio > 1,
-        attrib = retina? "data-src-retina" : "data-src",
-        images = this,
-        loaded,
-        inview,
-        source;
+		this.one("unveil", function () {
+			if ($.isFunction(settings.unveiled)) {
+				settings.unveiled.apply(this, undefined);
+			} else {
+				source = this.getAttribute(attrib);
+				source = source || this.getAttribute("data-src");
+				if (source) {
+					this.setAttribute("src", source);
+				}
+			}
+		});
 
-    this.one("unveil", function() {
-      source = this.getAttribute(attrib);
-      source = source || this.getAttribute("data-src");
-      if (source) this.setAttribute("src", source);
-    });
+		function unveil() {
+			inview = images.filter(function () {
+				var $e = $(this),
+					wt = $w.scrollTop(),
+					wb = wt + $w.height(),
+					et = $e.offset().top,
+					eb = et + $e.height();
 
-    function unveil() {
-      inview = images.filter(function() {
-        var $e = $(this),
-            wt = $w.scrollTop(),
-            wb = wt + $w.height(),
-            et = $e.offset().top,
-            eb = et + $e.height();
+				return eb >= wt - th && et <= wb + th;
+			});
 
-        return eb >= wt - th && et <= wb + th;
-      });
+			loaded = inview.trigger("unveil");
+			images = images.not(loaded);
+		}
 
-      loaded = inview.trigger("unveil");
-      images = images.not(loaded);
-    }
+		$w.scroll(unveil);
+		$w.resize(unveil);
 
-    $w.scroll(unveil);
-    $w.resize(unveil);
+		unveil();
 
-    unveil();
+		return this;
+	};
 
-    return this;
-
-  };
-
-})(jQuery);
-
-
+	$.fn.unveil.defaults = {
+		threshold: 0,
+		unveiled: null
+	};
+}(jQuery));
